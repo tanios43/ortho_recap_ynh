@@ -1,0 +1,47 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# STOP SERVICE
+#=================================================
+ynh_script_progression "Stopping $app..."
+
+ynh_systemctl --service="$app" --action=stop
+
+#=================================================
+# UPDATE SOURCE FILES
+#=================================================
+ynh_script_progression "Updating application files..."
+
+# Garder le venv, remplacer uniquement le code applicatif
+cp "$YNH_APP_BASEDIR/sources/extra_files/app/app.py"          "$install_dir/app.py"
+cp "$YNH_APP_BASEDIR/sources/extra_files/app/requirements.txt" "$install_dir/requirements.txt"
+cp "$YNH_APP_BASEDIR/sources/extra_files/app/index.html"       "$install_dir/static/index.html"
+
+"$install_dir/venv/bin/pip" install --upgrade -r "$install_dir/requirements.txt"
+
+chown -R "$app:www-data" "$install_dir"
+chmod -R o-rwx "$install_dir"
+chown -R "$app:$app" "$install_dir/venv"
+
+#=================================================
+# UPDATE SYSTEMD AND NGINX
+#=================================================
+ynh_script_progression "Updating systemd and nginx configuration..."
+
+ynh_config_add_systemd
+ynh_config_add_nginx
+
+#=================================================
+# RESTART SERVICE
+#=================================================
+ynh_script_progression "Restarting $app..."
+
+ynh_systemctl --service="$app" --action=restart --log_path=systemd --wait_until="Running on"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Upgrade of $app completed"

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# RESTORE APPLICATION FILES
+#=================================================
+ynh_script_progression "Restoring application files..."
+
+ynh_restore "$install_dir/app.py"
+ynh_restore "$install_dir/requirements.txt"
+ynh_restore "$install_dir/static"
+
+# Recréer le venv
+python3 -m venv "$install_dir/venv"
+"$install_dir/venv/bin/pip" install --upgrade pip
+"$install_dir/venv/bin/pip" install -r "$install_dir/requirements.txt"
+
+chown -R "$app:www-data" "$install_dir"
+chmod -R o-rwx "$install_dir"
+chown -R "$app:$app" "$install_dir/venv"
+
+#=================================================
+# RESTORE DATA DIR
+#=================================================
+ynh_script_progression "Restoring data directory..."
+
+ynh_restore "$data_dir"
+chown -R "$app:$app" "$data_dir"
+chmod 750 "$data_dir"
+
+#=================================================
+# RESTORE CONFIGS AND RESTART
+#=================================================
+ynh_script_progression "Restoring configurations..."
+
+ynh_restore_conf "nginx"
+ynh_restore_conf "systemd"
+
+ynh_systemctl --action=reload --service=nginx
+ynh_systemctl --service="$app" --action=restart --log_path=systemd --wait_until="Running on"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Restoration completed for $app"

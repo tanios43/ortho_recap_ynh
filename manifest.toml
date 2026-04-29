@@ -1,0 +1,59 @@
+packaging_format = 2
+
+id = "ortho_recap"
+name = "Ortho Récap"
+description.fr = "Récapitulatif journalier des honoraires et kilomètres pour orthoptiste"
+description.en = "Daily fees and mileage summary for orthoptist practice"
+
+version = "1.0~ynh1"
+
+maintainers = []
+
+[upstream]
+license = "free"
+
+[integration]
+yunohost = ">= 11.2"
+architectures = "all"
+multi_instance = false
+ldap = false
+sso = true
+disk = "100M"
+ram.build = "128M"
+ram.runtime = "64M"
+
+[install]
+
+[install.domain]
+type = "domain"
+
+[install.path]
+type = "path"
+default = "/ortho_recap"
+
+[install.init_main_permission]
+type = "group"
+default = "all_users"
+
+[install.admin]
+type = "user"
+help.fr = "Utilisateur YunoHost qui aura les droits de modification"
+help.en = "YunoHost user who will have write access"
+
+[resources]
+
+[resources.system_user]
+
+[resources.install_dir]
+
+[resources.data_dir]
+
+[resources.permissions]
+main.url = "/"
+main.auth_header = true
+
+[resources.ports]
+main.default = 5000
+
+[resources.apt]
+packages = "python3, python3-pip, python3-venv"

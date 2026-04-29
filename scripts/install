@@ -1,0 +1,83 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# INSTALL DEPENDENCIES
+#=================================================
+ynh_script_progression "Installing dependencies..."
+
+ynh_apt_install_dependencies
+
+#=================================================
+# COPY SOURCE FILES
+#=================================================
+ynh_script_progression "Installing application files..."
+
+cp -r "$YNH_APP_BASEDIR/sources/extra_files/app/." "$install_dir/"
+
+# Créer le dossier static pour Flask (sert le HTML)
+mkdir -p "$install_dir/static"
+cp "$install_dir/index.html" "$install_dir/static/index.html"
+
+chown -R "$app:www-data" "$install_dir"
+chmod -R o-rwx "$install_dir"
+
+#=================================================
+# CREATE PYTHON VIRTUAL ENVIRONMENT
+#=================================================
+ynh_script_progression "Creating Python virtual environment..."
+
+python3 -m venv "$install_dir/venv"
+"$install_dir/venv/bin/pip" install --upgrade pip
+"$install_dir/venv/bin/pip" install -r "$install_dir/requirements.txt"
+
+chown -R "$app:$app" "$install_dir/venv"
+
+#=================================================
+# SETUP DATA DIRECTORY
+#=================================================
+ynh_script_progression "Setting up data directory..."
+
+mkdir -p "$data_dir"
+chown -R "$app:$app" "$data_dir"
+chmod 750 "$data_dir"
+
+#=================================================
+# GENERATE APP SECRET
+#=================================================
+ynh_script_progression "Generating application secret..."
+
+app_secret=$(ynh_string_random --length=64)
+ynh_app_setting_set --key=app_secret --value="$app_secret"
+
+#=================================================
+# SETUP SYSTEMD SERVICE
+#=================================================
+ynh_script_progression "Configuring systemd service..."
+
+ynh_config_add_systemd
+
+yunohost service add "$app" \
+    --description="Ortho Récap — Flask backend" \
+    --log="/var/log/$app/$app.log"
+
+#=================================================
+# SETUP NGINX
+#=================================================
+ynh_script_progression "Configuring nginx..."
+
+ynh_config_add_nginx
+
+#=================================================
+# START SERVICE
+#=================================================
+ynh_script_progression "Starting $app..."
+
+ynh_systemctl --service="$app" --action=start --log_path=systemd --wait_until="Running on"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Installation of $app completed"

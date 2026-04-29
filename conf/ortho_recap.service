@@ -1,0 +1,23 @@
+[Unit]
+Description=Ortho Récap — Flask backend
+After=network.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__
+Environment="PORT=__PORT__"
+Environment="DATA_DIR=__DATA_DIR__"
+Environment="ADMIN_USER=__ADMIN__"
+Environment="APP_SECRET=__APP_SECRET__"
+ExecStart=__INSTALL_DIR__/venv/bin/python __INSTALL_DIR__/app.py
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ortho_recap
+
+[Install]
+WantedBy=multi-user.target

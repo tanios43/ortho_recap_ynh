@@ -1,0 +1,33 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# BACKUP APP DIR (code uniquement, pas le venv)
+#=================================================
+ynh_script_progression "Backing up application files..."
+
+ynh_backup "$install_dir/app.py"
+ynh_backup "$install_dir/requirements.txt"
+ynh_backup "$install_dir/static"
+
+#=================================================
+# BACKUP DATA DIR (base SQLite)
+#=================================================
+ynh_script_progression "Backing up data directory..."
+
+ynh_backup "$data_dir"
+
+#=================================================
+# BACKUP NGINX AND SYSTEMD CONFIGS
+#=================================================
+ynh_script_progression "Backing up configurations..."
+
+ynh_backup_conf "nginx"
+ynh_backup_conf "systemd"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Backup script completed for $app."

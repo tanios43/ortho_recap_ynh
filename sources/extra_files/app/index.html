@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Récapitulatif journalier — Selarl Cyprien Nesme Orthoptiste</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; color: #1a1a18; padding: 1.5rem; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.5rem; color: #1a1a18; }
+:root { --c-yss: #E6F1FB; --c-yss-t: #0C447C; --c-puy: #EAF3DE; --c-puy-t: #27500A; --t-head: #F1EFE8; --border: #e0ddd5; --bg-sec: #f1efe8; --text: #1a1a18; --text-sec: #5f5e5a; --text-ter: #888780; --purple-bg: #EEEDFE; --purple-t: #3C3489; --radius: 8px; }
+.app { max-width: 800px; margin: 0 auto; }
+.save-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.save-status { font-size: 12px; color: var(--text-ter); flex: 1; min-width: 180px; }
+.save-status.saved { color: #3B6D11; }
+.save-status.unsaved { color: #BA7517; }
+.btn-save { padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid #c0bdb5; background: #EEEDFE; color: #3C3489; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; }
+.btn-save:hover { background: #CECBF6; }
+.btn-io { padding: 6px 12px; border-radius: var(--radius); border: 0.5px solid #c0bdb5; background: transparent; color: var(--text-sec); cursor: pointer; font-size: 13px; font-family: inherit; }
+.btn-io:hover { background: var(--bg-sec); }
+.tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.tab { padding: 8px 16px; border-radius: var(--radius); border: 0.5px solid #c0bdb5; background: transparent; cursor: pointer; font-size: 14px; color: var(--text-sec); font-family: inherit; }
+.tab.active { background: var(--bg-sec); color: var(--text); font-weight: 500; border-color: #888780; }
+.tab:hover:not(.active) { background: #faf9f7; }
+.panel { display: none; }
+.panel.active { display: block; }
+.month-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.month-header h2 { font-size: 18px; font-weight: 500; color: var(--text); text-transform: capitalize; }
+.btn-nav { width: 32px; height: 32px; border-radius: var(--radius); border: 0.5px solid #c0bdb5; background: transparent; cursor: pointer; font-size: 18px; color: var(--text-sec); font-family: inherit; }
+.btn-nav:hover { background: var(--bg-sec); }
+.year-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.year-nav h2 { font-size: 18px; font-weight: 500; color: var(--text); }
+.totals-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: var(--bg-sec); border-radius: var(--radius); padding: 12px 14px; }
+.metric-label { font-size: 12px; color: var(--text-sec); margin-bottom: 4px; }
+.metric-value { font-size: 20px; font-weight: 500; color: var(--text); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; border-radius: var(--radius); overflow: hidden; }
+th { background: var(--t-head); color: var(--text-sec); font-weight: 500; padding: 8px 10px; text-align: center; border: 0.5px solid var(--border); font-size: 12px; }
+td { border: 0.5px solid var(--border); padding: 5px 8px; text-align: center; vertical-align: middle; }
+td.day-label { font-weight: 500; color: var(--text); background: var(--bg-sec); font-size: 12px; text-align: left; padding-left: 10px; white-space: nowrap; }
+td.month-label { font-weight: 500; color: var(--text); background: var(--bg-sec); font-size: 13px; text-align: left; padding-left: 10px; text-transform: capitalize; }
+td.site-yss { background: var(--c-yss); color: var(--c-yss-t); font-size: 11px; font-weight: 500; }
+td.site-puy { background: var(--c-puy); color: var(--c-puy-t); font-size: 11px; font-weight: 500; }
+td.total-row { background: var(--bg-sec); font-weight: 500; color: var(--text); }
+td.grand-total { background: var(--purple-bg); font-weight: 500; color: var(--purple-t); }
+td.annual-total { background: var(--purple-bg); font-weight: 500; color: var(--purple-t); font-size: 14px; }
+input[type=number] { width: 70px; border: none; background: transparent; text-align: center; font-size: 13px; color: var(--text); padding: 2px; font-family: inherit; outline: none; }
+input[type=number]:focus { background: var(--bg-sec); border-radius: 4px; }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.km-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+.km-yss { background: var(--c-yss); color: var(--c-yss-t); }
+.km-puy { background: var(--c-puy); color: var(--c-puy-t); }
+.km-both { background: var(--purple-bg); color: var(--purple-t); }
+.km-none { color: var(--text-ter); font-size: 12px; }
+.section-label { font-size: 13px; font-weight: 500; color: var(--text-sec); margin-bottom: 8px; }
+tfoot td { font-size: 13px; }
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1a18; color: white; padding: 10px 18px; border-radius: var(--radius); font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+.toast.show { opacity: 1; }
+.btn-print { padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid #c0bdb5; background: transparent; color: var(--text-sec); cursor: pointer; font-size: 13px; font-family: inherit; display: none; }
+.btn-print:hover { background: var(--bg-sec); }
+
+@media print {
+  @page { size: A4; margin: 1.5cm; }
+  body { background: white; padding: 0; font-size: 12px; }
+  .app { max-width: 100%; }
+  .save-bar, .tabs, .year-nav .btn-nav, .btn-print, .toast { display: none !important; }
+  .panel { display: none !important; }
+  .panel.print-target { display: block !important; }
+  .year-nav { margin-bottom: 1rem; }
+  .year-nav h2 { font-size: 16px; }
+  .totals-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; margin-bottom: 1rem; }
+  .metric { padding: 8px 10px; border: 0.5px solid #ccc; border-radius: 4px; }
+  .metric-value { font-size: 15px; }
+  .section-label { margin-top: 1rem; }
+  table { font-size: 11px; page-break-inside: avoid; }
+  th, td { padding: 4px 6px; }
+  td.month-label { cursor: default !important; text-decoration: none !important; }
+  a { text-decoration: none; }
+  .print-title { display: block; font-size: 18px; font-weight: 500; margin-bottom: 1rem; color: #1a1a18; }
+}
+.print-title { display: none; }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <h1>Récapitulatif journalier — Selarl Cyprien Nesme Orthoptiste</h1>
+
+  <div class="save-bar">
+    <span class="save-status" id="save-status">Chargement…</span>
+    <span id="role-badge" style="font-size:12px;padding:2px 8px;border-radius:12px;background:#EEEDFE;color:#3C3489;font-weight:500;display:none;"></span>
+    <button class="btn-save" id="btn-save" onclick="saveData()" style="display:none">Sauvegarder</button>
+    <button class="btn-io" id="btn-export" onclick="exportData()" title="Exporter toutes les données dans un fichier .json" style="display:none">Exporter</button>
+    <button class="btn-io" id="btn-import" onclick="document.getElementById('import-input').click()" title="Importer un fichier de sauvegarde .json" style="display:none">Importer</button>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)" />
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showPanel('honoraires',event)">Honoraires</button>
+    <button class="tab" onclick="showPanel('kilometres',event)">Kilomètres</button>
+    <button class="tab" onclick="showPanel('annuel',event)">Récapitulatif annuel</button>
+  </div>
+
+  <div id="panel-honoraires" class="panel active">
+    <div class="month-header">
+      <button class="btn-nav" onclick="changeMonth(-1)">&#8249;</button>
+      <h2 id="month-title"></h2>
+      <button class="btn-nav" onclick="changeMonth(1)">&#8250;</button>
+    </div>
+    <div class="totals-grid">
+      <div class="metric" style="grid-column:span 2;">
+        <div class="metric-label">AMY Yssingeaux</div>
+        <div class="metric-value" id="tot-amy-yss">0,00 €</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">AMY Le Puy</div>
+        <div class="metric-value" id="tot-amy-puy">0,00 €</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">RNO Le Puy</div>
+        <div class="metric-value" id="tot-rno-puy">0,00 €</div>
+      </div>
+      <div class="metric" style="grid-column:span 2;">
+        <div class="metric-label">Total honoraires Yssingeaux</div>
+        <div class="metric-value" id="tot-yss">0,00 €</div>
+      </div>
+      <div class="metric" style="grid-column:span 2;">
+        <div class="metric-label">Total honoraires Le Puy</div>
+        <div class="metric-value" id="tot-puy">0,00 €</div>
+      </div>
+      <div class="metric" style="grid-column:span 4;background:#EEEDFE;">
+        <div class="metric-label" style="color:#534AB7;">Total honoraires du mois</div>
+        <div class="metric-value" style="color:#3C3489;" id="tot-global">0,00 €</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2">Jour</th>
+          <th colspan="1" style="background:#B5D4F4;color:#0C447C;">Yssingeaux</th>
+          <th colspan="2" style="background:#C0DD97;color:#27500A;">Le Puy</th>
+          <th rowspan="2">Total jour</th>
+        </tr>
+        <tr>
+          <th style="background:#B5D4F4;color:#0C447C;">AMY (€)</th>
+          <th style="background:#C0DD97;color:#27500A;">AMY (€)</th>
+          <th style="background:#C0DD97;color:#27500A;">RNO (actes)</th>
+        </tr>
+      </thead>
+      <tbody id="honoraires-body"></tbody>
+    </table>
+  </div>
+
+  <div id="panel-kilometres" class="panel">
+    <div class="month-header">
+      <button class="btn-nav" onclick="changeMonth(-1)">&#8249;</button>
+      <h2 id="km-month-title"></h2>
+      <button class="btn-nav" onclick="changeMonth(1)">&#8250;</button>
+    </div>
+    <div class="totals-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+      <div class="metric">
+        <div class="metric-label">Total kilomètres du mois</div>
+        <div class="metric-value" id="tot-km">0 km</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Jours travaillés</div>
+        <div class="metric-value" id="tot-jours">0 jour(s)</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Jour</th><th>Situation</th><th>Km</th></tr>
+      </thead>
+      <tbody id="km-body"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" class="total-row" style="text-align:right;padding-right:12px;">Total</td>
+          <td class="grand-total" id="km-total-foot">0 km</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div id="panel-annuel" class="panel">
+    <span class="print-title" id="print-title"></span>
+    <div class="year-nav">
+      <button class="btn-nav" onclick="changeYear(-1)">&#8249;</button>
+      <h2 id="annual-year-title"></h2>
+      <button class="btn-nav" onclick="changeYear(1)">&#8250;</button>
+      <button class="btn-print" id="btn-print" onclick="printAnnual()">🖨 Imprimer PDF</button>
+    </div>
+    <div class="totals-grid">
+      <div class="metric" style="grid-column:span 2;background:#EEEDFE;">
+        <div class="metric-label" style="color:#534AB7;">Total honoraires annuel</div>
+        <div class="metric-value" style="color:#3C3489;" id="annual-hon-total">0,00 €</div>
+      </div>
+      <div class="metric" style="grid-column:span 2;background:#EEEDFE;">
+        <div class="metric-label" style="color:#534AB7;">Total kilomètres annuel</div>
+        <div class="metric-value" style="color:#3C3489;" id="annual-km-total">0 km</div>
+      </div>
+    </div>
+    <p class="section-label">Honoraires</p>
+    <table style="margin-bottom:2rem;">
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left;padding-left:10px;">Mois</th>
+          <th colspan="2" style="background:#B5D4F4;color:#0C447C;">Yssingeaux</th>
+          <th colspan="2" style="background:#C0DD97;color:#27500A;">Le Puy</th>
+          <th rowspan="2">Total mois</th>
+        </tr>
+        <tr>
+          <th style="background:#B5D4F4;color:#0C447C;">AMY</th>
+          <th style="background:#B5D4F4;color:#0C447C;">Total</th>
+          <th style="background:#C0DD97;color:#27500A;">AMY</th>
+          <th style="background:#C0DD97;color:#27500A;">RNO</th>
+        </tr>
+      </thead>
+      <tbody id="annual-hon-body"></tbody>
+      <tfoot>
+        <tr>
+          <td class="month-label">Total annuel</td>
+          <td class="annual-total" id="af-amy-yss"></td>
+          <td class="annual-total" id="af-tot-yss"></td>
+          <td class="annual-total" id="af-amy-puy"></td>
+          <td class="annual-total" id="af-rno-puy"></td>
+          <td class="annual-total" id="af-total"></td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="section-label">Kilomètres</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left;padding-left:10px;">Mois</th>
+          <th>Kilomètres</th>
+        </tr>
+      </thead>
+      <tbody id="annual-km-body"></tbody>
+      <tfoot>
+        <tr>
+          <td class="month-label">Total annuel</td>
+          <td class="annual-total" id="akf-km"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RNO_VALUE = 28 * 0.40;
+const KM_YSS = 37, KM_PUY = 90, KM_BOTH = 127;
+// ── Configuration injectée par Flask ──────────────────────────────────────────
+// window.ORTHO_USER, window.ORTHO_ROLE, window.ORTHO_TOKEN sont injectés par le serveur
+const ROLE  = window.ORTHO_ROLE  || 'viewer';
+const TOKEN = window.ORTHO_TOKEN || '';
+const IS_ADMIN = ROLE === 'admin';
+
+const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const WEEKDAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+let currentYear  = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let annualYear   = new Date().getFullYear();
+let data = {};       // cache local : { "year-month": { "day-site-type": value } }
+let unsaved = false;
+let loadedMonths = new Set();  // mois déjà chargés depuis l'API
+
+// ── UI selon le rôle ──────────────────────────────────────────────────────────
+function initUI() {
+  const badge = document.getElementById('role-badge');
+  badge.style.display = 'inline-block';
+  if (IS_ADMIN) {
+    badge.textContent = '✏️ Admin';
+    document.getElementById('btn-save').style.display = '';
+    document.getElementById('btn-export').style.display = '';
+    document.getElementById('btn-import').style.display = '';
+  } else {
+    badge.textContent = '👁 Lecture seule';
+    badge.style.background = '#F1EFE8';
+    badge.style.color = '#5f5e5a';
+    // Désactiver les inputs
+    document.querySelectorAll('input[type=number]').forEach(i => i.disabled = true);
+  }
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function apiGet(year, month) {
+  const r = await fetch(`/api/data/${year}/${month}`, {
+    headers: { 'X-Api-Token': TOKEN }
+  });
+  if (!r.ok) return {};
+  return await r.json();
+}
+
+async function apiPost(year, month, monthData) {
+  const r = await fetch(`/api/data/${year}/${month}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Token': TOKEN },
+    body: JSON.stringify(monthData)
+  });
+  return r.ok;
+}
+
+// ── Chargement d'un mois depuis l'API (avec cache) ────────────────────────────
+async function ensureMonthLoaded(y, m) {
+  const k = `${y}-${m}`;
+  if (loadedMonths.has(k)) return;
+  setStatus('loading');
+  const monthData = await apiGet(y, m);
+  data[k] = monthData;
+  loadedMonths.add(k);
+}
+
+// ── Chargement initial ────────────────────────────────────────────────────────
+async function loadData() {
+  initUI();
+  await ensureMonthLoaded(currentYear, currentMonth);
+  setStatus('saved');
+  refresh();
+}
+
+// ── Sauvegarde du mois courant ────────────────────────────────────────────────
+async function saveData() {
+  if (!IS_ADMIN) return;
+  const k = `${currentYear}-${currentMonth}`;
+  const ok = await apiPost(currentYear, currentMonth, data[k] || {});
+  unsaved = false;
+  if (ok) {
+    setStatus('saved');
+    showToast('Données sauvegardées');
+  } else {
+    showToast('Erreur lors de la sauvegarde');
+  }
+}
+
+// ── Export JSON (toutes les données en cache) ─────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = 'ortho_sauvegarde_' + today + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Fichier exporté');
+}
+
+// ── Import JSON ───────────────────────────────────────────────────────────────
+function importData(event) {
+  if (!IS_ADMIN) return;
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      // Envoyer chaque mois à l'API
+      for (const k of Object.keys(imported)) {
+        const [y, m] = k.split('-').map(Number);
+        await apiPost(y, m, imported[k]);
+        data[k] = imported[k];
+        loadedMonths.add(k);
+      }
+      refresh();
+      showToast('Données importées avec succès');
+    } catch(err) { showToast('Fichier invalide'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── Statut ────────────────────────────────────────────────────────────────────
+function setStatus(state) {
+  const el = document.getElementById('save-status');
+  if (state === 'saved') {
+    const now = new Date();
+    el.textContent = 'Sauvegardé le ' + now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    el.className = 'save-status saved';
+  } else if (state === 'loading') {
+    el.textContent = 'Chargement…';
+    el.className = 'save-status';
+  } else {
+    el.textContent = 'Modifications non sauvegardées';
+    el.className = 'save-status unsaved';
+  }
+}
+
+function markUnsaved() { if (!unsaved) { unsaved = true; setStatus('unsaved'); } }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Sauvegarde auto toutes les 2 minutes si modifications
+setInterval(() => { if (unsaved && IS_ADMIN) saveData(); }, 120000);
+window.addEventListener('beforeunload', () => { if (unsaved && IS_ADMIN) saveData(); });
+
+// ── Gestion des données ───────────────────────────────────────────────────────
+function getMonthData(y, m) {
+  const k = (y===undefined?currentYear:y)+'-'+(m===undefined?currentMonth:m);
+  if (!data[k]) data[k] = {};
+  return data[k];
+}
+function getDays(y, m) {
+  const days = [], total = new Date(y, m+1, 0).getDate();
+  for (let d = 1; d <= total; d++) {
+    const wd = new Date(y, m, d).getDay();
+    if (wd >= 1 && wd <= 6) days.push({ day: d, name: WEEKDAYS[wd] });
+  }
+  return days;
+}
+function getVal(d, site, type, y, m) { return parseFloat(getMonthData(y,m)[d+'-'+site+'-'+type]||0)||0; }
+function setVal(d, site, type, v) {
+  if (!IS_ADMIN) return;
+  getMonthData()[d+'-'+site+'-'+type] = v;
+  markUnsaved();
+}
+
+function calcDay(d, y, m) {
+  const amy_yss = getVal(d,'yss','amy',y,m);
+  const amy_puy = getVal(d,'puy','amy',y,m);
+  const rno_puy = getVal(d,'puy','rno',y,m);
+  const total_yss = amy_yss;
+  const total_puy = amy_puy + rno_puy * RNO_VALUE;
+  return { amy_yss, amy_puy, rno_puy, total_yss, total_puy, total: total_yss + total_puy };
+}
+function calcMonth(y, m) {
+  const days = getDays(y, m);
+  let amy_yss=0, amy_puy=0, rno_puy_eur=0, km=0;
+  days.forEach(({ day }) => {
+    const c = calcDay(day, y, m);
+    amy_yss+=c.amy_yss; amy_puy+=c.amy_puy; rno_puy_eur+=c.rno_puy*RNO_VALUE;
+    if (c.total_yss>0 && c.total_puy>0) km+=KM_BOTH;
+    else if (c.total_yss>0) km+=KM_YSS;
+    else if (c.total_puy>0) km+=KM_PUY;
+  });
+  return { amy_yss, amy_puy, rno_puy_eur, tot_yss: amy_yss, tot_puy: amy_puy+rno_puy_eur, total: amy_yss+amy_puy+rno_puy_eur, km };
+}
+
+function fmt(v) { return v.toFixed(2).replace('.',',') + ' €'; }
+function fmtZ(v) { return v===0 ? '<span style="color:#888780">—</span>' : fmt(v); }
+
+function renderHonoraires() {
+  const days = getDays(currentYear, currentMonth);
+  const body = document.getElementById('honoraires-body');
+  body.innerHTML = '';
+  let totAmyYss=0, totAmyPuy=0, totRnoPuy=0;
+  days.forEach(({ day, name }) => {
+    const c = calcDay(day);
+    totAmyYss+=c.amy_yss; totAmyPuy+=c.amy_puy; totRnoPuy+=c.rno_puy*RNO_VALUE;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="day-label">${day} ${name.slice(0,3)}.</td>
+      <td class="site-yss"><input type="number" min="0" step="0.01" value="${c.amy_yss||''}" placeholder="0" onchange="setVal(${day},'yss','amy',+this.value);refresh()" /></td>
+      <td class="site-puy"><input type="number" min="0" step="0.01" value="${c.amy_puy||''}" placeholder="0" onchange="setVal(${day},'puy','amy',+this.value);refresh()" /></td>
+      <td class="site-puy"><input type="number" min="0" step="1" value="${c.rno_puy||''}" placeholder="0" onchange="setVal(${day},'puy','rno',+this.value);refresh()" /></td>
+      <td class="total-row">${c.total>0 ? fmt(c.total) : '—'}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('tot-amy-yss').textContent = fmt(totAmyYss);
+  document.getElementById('tot-amy-puy').textContent = fmt(totAmyPuy);
+  document.getElementById('tot-rno-puy').textContent = fmt(totRnoPuy);
+  document.getElementById('tot-yss').textContent = fmt(totAmyYss);
+  document.getElementById('tot-puy').textContent = fmt(totAmyPuy+totRnoPuy);
+  document.getElementById('tot-global').textContent = fmt(totAmyYss+totAmyPuy+totRnoPuy);
+}
+
+function renderKm() {
+  const days = getDays(currentYear, currentMonth);
+  const body = document.getElementById('km-body');
+  body.innerHTML = '';
+  let totalKm=0, jours=0;
+  days.forEach(({ day, name }) => {
+    const c = calcDay(day);
+    const hasYss=c.total_yss>0, hasPuy=c.total_puy>0;
+    let km=0, badge='', label='';
+    if (hasYss && hasPuy) { km=KM_BOTH; badge='km-both'; label='Yss + Le Puy'; }
+    else if (hasYss) { km=KM_YSS; badge='km-yss'; label='Yssingeaux seulement'; }
+    else if (hasPuy) { km=KM_PUY; badge='km-puy'; label='Le Puy seulement'; }
+    if (km>0) { totalKm+=km; jours++; }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="day-label">${day} ${name.slice(0,3)}.</td>
+      <td>${km>0 ? '<span class="km-badge '+badge+'">'+label+'</span>' : '<span class="km-none">Aucun honoraire</span>'}</td>
+      <td class="total-row">${km>0 ? km+' km' : '—'}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('tot-km').textContent = totalKm+' km';
+  document.getElementById('tot-jours').textContent = jours+' jour'+(jours>1?'s':'');
+  document.getElementById('km-total-foot').textContent = totalKm+' km';
+}
+
+function renderAnnual() {
+  document.getElementById('annual-year-title').textContent = annualYear;
+  const honBody = document.getElementById('annual-hon-body');
+  const kmBody = document.getElementById('annual-km-body');
+  honBody.innerHTML = ''; kmBody.innerHTML = '';
+  let totAmy_yss=0, totAmy_puy=0, totRno_puy=0, totAll=0, totKm=0;
+  MONTHS.forEach((mName, m) => {
+    const c = calcMonth(annualYear, m);
+    totAmy_yss+=c.amy_yss; totAmy_puy+=c.amy_puy; totRno_puy+=c.rno_puy_eur; totAll+=c.total; totKm+=c.km;
+    const tr1 = document.createElement('tr');
+    tr1.innerHTML = `
+      <td class="month-label" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" onclick="goToMonth(${m})">${mName}</td>
+      <td>${fmtZ(c.amy_yss)}</td>
+      <td class="total-row">${fmtZ(c.tot_yss)}</td>
+      <td>${fmtZ(c.amy_puy)}</td>
+      <td>${fmtZ(c.rno_puy_eur)}</td>
+      <td class="grand-total">${fmtZ(c.total)}</td>`;
+    honBody.appendChild(tr1);
+    const tr2 = document.createElement('tr');
+    tr2.innerHTML = `
+      <td class="month-label" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" onclick="goToMonth(${m})">${mName}</td>
+      <td class="grand-total">${c.km>0 ? c.km+' km' : '<span style="color:#888780">—</span>'}</td>`;
+    kmBody.appendChild(tr2);
+  });
+  document.getElementById('annual-hon-total').textContent = fmt(totAll);
+  document.getElementById('annual-km-total').textContent = totKm+' km';
+  document.getElementById('af-amy-yss').innerHTML = fmtZ(totAmy_yss);
+  document.getElementById('af-tot-yss').innerHTML = fmtZ(totAmy_yss);
+  document.getElementById('af-amy-puy').innerHTML = fmtZ(totAmy_puy);
+  document.getElementById('af-rno-puy').innerHTML = fmtZ(totRno_puy);
+  document.getElementById('af-total').innerHTML = fmtZ(totAll);
+  document.getElementById('akf-km').textContent = totKm>0 ? totKm+' km' : '—';
+}
+
+function goToMonth(m) { currentMonth=m; currentYear=annualYear; showPanelById('honoraires'); refresh(); }
+function updateTitles() {
+  const t = MONTHS[currentMonth]+' '+currentYear;
+  document.getElementById('month-title').textContent = t;
+  document.getElementById('km-month-title').textContent = t;
+}
+function refresh() { updateTitles(); renderHonoraires(); renderKm(); renderAnnual(); }
+async function changeMonth(dir) {
+  currentMonth+=dir;
+  if (currentMonth<0){currentMonth=11;currentYear--;}
+  if (currentMonth>11){currentMonth=0;currentYear++;}
+  await ensureMonthLoaded(currentYear, currentMonth);
+  refresh();
+}
+async function changeYear(dir) {
+  annualYear+=dir;
+  for (let m = 0; m < 12; m++) await ensureMonthLoaded(annualYear, m);
+  renderAnnual();
+}
+function showPanelById(id) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.getElementById('btn-print').style.display = id==='annuel' ? 'inline-block' : 'none';
+  document.querySelectorAll('.tab').forEach(t=>{
+    if((id==='honoraires'&&t.textContent.includes('Honor'))||
+       (id==='kilometres'&&t.textContent.includes('Kilo'))||
+       (id==='annuel'&&t.textContent.includes('annuel'))) t.classList.add('active');
+  });
+}
+async function showPanel(id, event) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.getElementById('btn-print').style.display = id==='annuel' ? 'inline-block' : 'none';
+  event.target.classList.add('active');
+  if (id === 'annuel') {
+    // Charger tous les mois de l'année depuis l'API si besoin
+    for (let m = 0; m < 12; m++) {
+      await ensureMonthLoaded(annualYear, m);
+    }
+    renderAnnual();
+  }
+}
+
+function printAnnual() {
+  document.getElementById('print-title').textContent = 'Récapitulatif annuel — Selarl Cyprien Nesme Orthoptiste — ' + annualYear;
+  document.getElementById('panel-annuel').classList.add('print-target');
+  window.print();
+  document.getElementById('panel-annuel').classList.remove('print-target');
+}
+
+loadData();
+</script>
+</body>
+</html>
