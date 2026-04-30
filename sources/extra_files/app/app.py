@@ -2,38 +2,44 @@
 """
 Ortho Récap — Backend Flask
 API REST pour la sauvegarde des honoraires et kilomètres.
-Auth : header X-Auth-User injecté par SSOwat (nginx auth_header = true).
-Admin : défini à l'installation, seul utilisateur autorisé à modifier.
+Copie exacte du modèle d'auth de scm_vidi_ynh.
 """
 
 import os
 import json
-import sqlite3
-import hashlib
+import base64
 import hmac
+import hashlib
+import sqlite3
 import time
 from functools import wraps
-from flask import Flask, request, jsonify, send_from_directory, abort
+from flask import Flask, request, jsonify, g, Response
 
 app = Flask(__name__, static_folder="static")
 
-# ── Configuration ────────────────────────────────────────────────────────────
-DATA_DIR  = os.environ.get("DATA_DIR", "/home/yunohost.app/ortho_recap")
-DB_PATH   = os.path.join(DATA_DIR, "data.db")
-ADMIN     = os.environ.get("ADMIN_USER", "")
-SECRET    = os.environ.get("APP_SECRET", "changeme")
+# ── Configuration ─────────────────────────────────────────────────────────────
+DB_PATH    = os.environ.get("DATA_DIR", "/home/yunohost.app/ortho_recap") + "/data.db"
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+SECRET_KEY = os.environ.get("APP_SECRET", os.urandom(32).hex())
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 # ── Base de données ───────────────────────────────────────────────────────────
 def get_db():
-    db = sqlite3.connect(DB_PATH)
-    db.row_factory = sqlite3.Row
-    return db
+    if "db" not in g:
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+@app.teardown_appcontext
+def close_db(e=None):
+    db = g.pop("db", None)
+    if db:
+        db.close()
 
 def init_db():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    db = get_db()
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    db = sqlite3.connect(DB_PATH)
     db.execute("""
         CREATE TABLE IF NOT EXISTS entries (
             year    INTEGER NOT NULL,
@@ -50,19 +56,58 @@ def init_db():
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-# ── Auth helpers ──────────────────────────────────────────────────────────────
+# ── Auth — copie exacte de scm_vidi_ynh ──────────────────────────────────────
+def make_token(username):
+    expires = int(time.time()) + 86400
+    payload = f"{username}:{expires}"
+    sig = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return base64.b64encode(f"{payload}:{sig}".encode()).decode()
+
+def verify_token(token):
+    try:
+        raw = base64.b64decode(token.encode()).decode()
+        username, expires_str, sig = raw.rsplit(":", 2)
+        if time.time() > int(expires_str):
+            return None
+        payload = f"{username}:{expires_str}"
+        expected = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+        if hmac.compare_digest(sig, expected):
+            return username
+    except Exception:
+        pass
+    return None
+
 def get_current_user():
-    """Lit l'utilisateur depuis le header SSOwat injecté par nginx."""
-    return request.headers.get("X-Remote-User", "")
+    # Méthode 1 — Token signé (appels API JS)
+    token = request.headers.get("X-Ortho-Token", "")
+    if token:
+        user = verify_token(token)
+        if user:
+            return user
+    # Méthode 2 — Authorization Basic (YunoHost 12)
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(auth[6:]).decode("utf-8")
+            username = decoded.split(":")[0]
+            if username:
+                return username
+        except Exception:
+            pass
+    # Méthode 3 — X-Remote-User (YunoHost < 12)
+    remote_user = request.headers.get("X-Remote-User", "")
+    if remote_user:
+        return remote_user
+    return ""
 
 def is_admin():
-    return get_current_user() == ADMIN
+    return get_current_user() == ADMIN_USER
 
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not get_current_user():
-            abort(401)
+            return jsonify({"error": "Non authentifié"}), 401
         return f(*args, **kwargs)
     return decorated
 
@@ -70,94 +115,49 @@ def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not is_admin():
-            abort(403)
+            return jsonify({"error": "Réservé à l'administrateur"}), 403
         return f(*args, **kwargs)
     return decorated
-
-def make_api_token():
-    """Génère un token HMAC signé valable 1h pour les appels /api/ (bypass SSOwat)."""
-    ts = str(int(time.time()) // 3600)
-    user = get_current_user()
-    sig = hmac.new(SECRET.encode(), f"{user}:{ts}".encode(), hashlib.sha256).hexdigest()
-    return f"{user}:{ts}:{sig}"
-
-def verify_api_token(token):
-    try:
-        user, ts, sig = token.split(":")
-        ts_now = str(int(time.time()) // 3600)
-        expected = hmac.new(SECRET.encode(), f"{user}:{ts}".encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(sig, expected):
-            return None
-        if abs(int(ts) - int(ts_now)) > 1:  # tolérance ±1h
-            return None
-        return user
-    except Exception:
-        return None
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-# ── Routes statiques ──────────────────────────────────────────────────────────
-@app.route("/")
-@require_auth
-def index():
-    role = "admin" if is_admin() else "viewer"
-    user = get_current_user()
-    token = make_api_token()
-    # On injecte role, user et token dans le HTML via un script inline
-    inject = f"""<script>
-window.ORTHO_USER  = {json.dumps(user)};
-window.ORTHO_ROLE  = {json.dumps(role)};
-window.ORTHO_TOKEN = {json.dumps(token)};
-</script>"""
-    with open(os.path.join(app.static_folder, "index.html"), "r", encoding="utf-8") as f:
-        html = f.read()
-    html = html.replace("</head>", inject + "\n</head>", 1)
-    from flask import Response
-    return Response(html, mimetype="text/html")
-# ─────────────────────────────────────────────────────────────────────────────
+# ── API : lecture ─────────────────────────────────────────────────────────────
+@app.route("/api/whoami")
+def whoami():
+    return jsonify({"user": get_current_user(), "is_admin": is_admin()})
 
-
-# ── API : lecture (tous les utilisateurs auth) ────────────────────────────────
 @app.route("/api/data/<int:year>/<int:month>")
+@require_auth
 def api_get_month(year, month):
-    token = request.headers.get("X-Api-Token", "")
-    user = verify_api_token(token)
-    if not user:
-        abort(401)
-
+    token = request.headers.get("X-Ortho-Token", "")
+    if not verify_token(token):
+        return jsonify({"error": "Token invalide"}), 401
     db = get_db()
     rows = db.execute(
         "SELECT day, site, type, value FROM entries WHERE year=? AND month=?",
         (year, month)
     ).fetchall()
-    db.close()
-
-    # Format identique au localStorage original : { "day-site-type": value }
     result = {}
     for r in rows:
-        key = f"{r['day']}-{r['site']}-{r['type']}"
-        result[key] = r["value"]
+        result[f"{r['day']}-{r['site']}-{r['type']}"] = r["value"]
     return jsonify(result)
 
 
-# ── API : écriture (admin uniquement) ─────────────────────────────────────────
+# ── API : écriture ────────────────────────────────────────────────────────────
 @app.route("/api/data/<int:year>/<int:month>", methods=["POST"])
+@require_admin
 def api_set_month(year, month):
-    token = request.headers.get("X-Api-Token", "")
-    user = verify_api_token(token)
-    if not user:
-        abort(401)
-    if user != ADMIN:
-        abort(403)
-
+    token = request.headers.get("X-Ortho-Token", "")
+    if not verify_token(token):
+        return jsonify({"error": "Token invalide"}), 403
     payload = request.get_json(force=True) or {}
     db = get_db()
     for key, value in payload.items():
         try:
-            parts = key.split("-")          # "day-site-type"
-            day   = int(parts[0])
-            site  = parts[1]
-            typ   = parts[2]
+            parts = key.split("-")
+            day  = int(parts[0])
+            site = parts[1]
+            typ  = parts[2]
             value = float(value)
         except (ValueError, IndexError):
             continue
@@ -167,21 +167,34 @@ def api_set_month(year, month):
             ON CONFLICT(year, month, day, site, type) DO UPDATE SET value=excluded.value
         """, (year, month, day, site, typ, value))
     db.commit()
-    db.close()
     return jsonify({"ok": True})
 
 
-# ── API : infos utilisateur courant ──────────────────────────────────────────
-@app.route("/api/me")
-def api_me():
-    token = request.headers.get("X-Api-Token", "")
-    user = verify_api_token(token)
-    if not user:
-        abort(401)
-    return jsonify({"user": user, "role": "admin" if user == ADMIN else "viewer"})
+# ── Servir l'app HTML ─────────────────────────────────────────────────────────
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve(path):
+    if path and os.path.exists(os.path.join(app.static_folder, path)):
+        from flask import send_from_directory
+        return send_from_directory(app.static_folder, path)
+
+    user  = get_current_user()
+    admin = user == ADMIN_USER
+    token = make_token(user) if user else ""
+
+    with open(os.path.join(app.static_folder, "index.html"), "r", encoding="utf-8") as f:
+        html = f.read()
+
+    injection = f"""<script>
+window.ORTHO_USER  = "{user}";
+window.ORTHO_ROLE  = "{"admin" if admin else "viewer"}";
+window.ORTHO_TOKEN = "{token}";
+</script>"""
+    html = html.replace("</head>", injection + "\n</head>", 1)
+    return Response(html, mimetype="text/html")
 
 
-# ── Lancement ────────────────────────────────────────────────────────────────
+# ── Lancement ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))

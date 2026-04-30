@@ -288,7 +288,7 @@ function initUI() {
 // ── API helpers ───────────────────────────────────────────────────────────────
 async function apiGet(year, month) {
   const r = await fetch(`/api/data/${year}/${month}`, {
-    headers: { 'X-Api-Token': TOKEN }
+    headers: { 'X-Ortho-Token': TOKEN }
   });
   if (!r.ok) return {};
   return await r.json();
@@ -297,7 +297,7 @@ async function apiGet(year, month) {
 async function apiPost(year, month, monthData) {
   const r = await fetch(`/api/data/${year}/${month}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Api-Token': TOKEN },
+    headers: { 'Content-Type': 'application/json', 'X-Ortho-Token': TOKEN },
     body: JSON.stringify(monthData)
   });
   return r.ok;
