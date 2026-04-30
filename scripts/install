@@ -51,6 +51,7 @@ PORT=$port
 DATA_DIR=$data_dir
 ADMIN_USER=$admin
 APP_SECRET=$app_secret
+APP_PATH=$path
 EOF
 
 chmod 600 "$install_dir/env"

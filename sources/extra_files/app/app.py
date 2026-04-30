@@ -181,12 +181,7 @@ def serve(path):
     user  = get_current_user()
     admin = user == ADMIN_USER
     token = make_token(user) if user else ""
-    # Déduire le path prefix depuis la requête (ex: /ortho_recap)
-    path_prefix = request.script_root or request.host_url.rstrip("/")
-    # Plus simple : utiliser REQUEST_URI pour extraire le prefix
-    raw_path = request.environ.get("REQUEST_URI", request.path)
-    path_prefix = raw_path.rsplit("/api", 1)[0] if "/api" in raw_path else ""
-    path_prefix = path_prefix.rstrip("/")
+    path_prefix = os.environ.get("APP_PATH", "")
 
     with open(os.path.join(app.static_folder, "index.html"), "r", encoding="utf-8") as f:
         html = f.read()
