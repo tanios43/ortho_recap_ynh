@@ -8,7 +8,7 @@ source /usr/share/yunohost/helpers
 #=================================================
 ynh_script_progression "Stopping $app..."
 
-ynh_systemctl --service="$app" --action=stop
+ynh_systemd_action --service_name="$app" --action="stop"
 
 #=================================================
 # UPDATE SOURCE FILES
@@ -31,15 +31,15 @@ chown -R "$app:$app" "$install_dir/venv"
 #=================================================
 ynh_script_progression "Updating systemd and nginx configuration..."
 
-ynh_config_add_systemd
-ynh_config_add_nginx
+ynh_add_systemd_config
+ynh_add_nginx_config
 
 #=================================================
 # RESTART SERVICE
 #=================================================
 ynh_script_progression "Restarting $app..."
 
-ynh_systemctl --service="$app" --action=restart --log_path=systemd --wait_until="Running on"
+ynh_systemd_action --service_name="$app" --action="restart" --log_path="systemd" --line_match="Running on"
 
 #=================================================
 # END OF SCRIPT

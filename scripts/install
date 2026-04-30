@@ -50,7 +50,7 @@ ynh_app_setting_set --key=app_secret --value="$app_secret"
 #=================================================
 ynh_script_progression "Configuring systemd service..."
 
-ynh_config_add_systemd
+ynh_add_systemd_config
 
 yunohost service add "$app" \
     --description="Ortho Récap — Flask backend" \
@@ -61,14 +61,14 @@ yunohost service add "$app" \
 #=================================================
 ynh_script_progression "Configuring nginx..."
 
-ynh_config_add_nginx
+ynh_add_nginx_config
 
 #=================================================
 # START SERVICE
 #=================================================
 ynh_script_progression "Starting $app..."
 
-ynh_systemctl --service="$app" --action=start --log_path=systemd --wait_until="Running on"
+ynh_systemd_action --service_name="$app" --action="start" --log_path="systemd" --line_match="Running on"
 
 #=================================================
 # END OF SCRIPT

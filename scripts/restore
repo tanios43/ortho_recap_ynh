@@ -38,8 +38,8 @@ ynh_script_progression "Restoring configurations..."
 ynh_restore_conf "nginx"
 ynh_restore_conf "systemd"
 
-ynh_systemctl --action=reload --service=nginx
-ynh_systemctl --service="$app" --action=restart --log_path=systemd --wait_until="Running on"
+ynh_systemd_action --service_name="nginx" --action="reload"
+ynh_systemd_action --service_name="$app" --action="restart" --log_path="systemd" --line_match="Running on"
 
 #=================================================
 # END OF SCRIPT
