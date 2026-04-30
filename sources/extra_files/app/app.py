@@ -53,7 +53,7 @@ def init_db():
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 def get_current_user():
     """Lit l'utilisateur depuis le header SSOwat injecté par nginx."""
-    return request.headers.get("X-Auth-User", "")
+    return request.headers.get("X-Remote-User", "")
 
 def is_admin():
     return get_current_user() == ADMIN

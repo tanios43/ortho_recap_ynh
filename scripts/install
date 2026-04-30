@@ -38,12 +38,23 @@ chown -R "$app:$app" "$data_dir"
 chmod 750 "$data_dir"
 
 #=================================================
-# GENERATE APP SECRET
+# GENERATE APP SECRET AND WRITE ENV FILE
 #=================================================
 ynh_script_progression "Generating application secret..."
 
 app_secret=$(ynh_string_random --length=64)
 ynh_app_setting_set --key=app_secret --value="$app_secret"
+
+# Écrire le fichier d'environnement lu par systemd
+cat > "$install_dir/env" << EOF
+PORT=$port
+DATA_DIR=$data_dir
+ADMIN_USER=$admin
+APP_SECRET=$app_secret
+EOF
+
+chmod 600 "$install_dir/env"
+chown "$app:$app" "$install_dir/env"
 
 #=================================================
 # SETUP SYSTEMD SERVICE

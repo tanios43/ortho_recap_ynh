@@ -15,8 +15,7 @@ ynh_systemd_action --service_name="$app" --action="stop"
 #=================================================
 ynh_script_progression "Updating application files..."
 
-# Garder le venv, remplacer uniquement le code applicatif
-cp "$YNH_APP_BASEDIR/sources/extra_files/app/app.py"          "$install_dir/app.py"
+cp "$YNH_APP_BASEDIR/sources/extra_files/app/app.py"           "$install_dir/app.py"
 cp "$YNH_APP_BASEDIR/sources/extra_files/app/requirements.txt" "$install_dir/requirements.txt"
 cp "$YNH_APP_BASEDIR/sources/extra_files/app/index.html"       "$install_dir/static/index.html"
 
@@ -25,6 +24,23 @@ cp "$YNH_APP_BASEDIR/sources/extra_files/app/index.html"       "$install_dir/sta
 chown -R "$app:www-data" "$install_dir"
 chmod -R o-rwx "$install_dir"
 chown -R "$app:$app" "$install_dir/venv"
+
+#=================================================
+# REGENERATE ENV FILE
+#=================================================
+ynh_script_progression "Updating environment file..."
+
+app_secret=$(ynh_app_setting_get --key=app_secret)
+
+cat > "$install_dir/env" << EOF
+PORT=$port
+DATA_DIR=$data_dir
+ADMIN_USER=$admin
+APP_SECRET=$app_secret
+EOF
+
+chmod 600 "$install_dir/env"
+chown "$app:$app" "$install_dir/env"
 
 #=================================================
 # UPDATE SYSTEMD AND NGINX
