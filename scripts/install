@@ -4,13 +4,6 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# INSTALL DEPENDENCIES
-#=================================================
-ynh_script_progression "Installing dependencies..."
-
-ynh_apt_install_dependencies
-
-#=================================================
 # COPY SOURCE FILES
 #=================================================
 ynh_script_progression "Installing application files..."
