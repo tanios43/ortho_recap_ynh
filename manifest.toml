@@ -52,6 +52,13 @@ help.en = "YunoHost user who will have write access"
 main.url = "/"
 main.auth_header = true
 
+# /api/ est publique — SSOwat ne redirige pas, Flask gère l'auth par token
+api.url = "/api"
+api.auth_header = false
+api.allowed = "visitors"
+api.show_tile = false
+api.protected = false
+
 [resources.ports]
 main.default = 5000
 
