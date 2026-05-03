@@ -413,10 +413,14 @@ function getDays(y, m) {
   return days;
 }
 function getVal(d, site, type, y, m) { return parseFloat(getMonthData(y,m)[d+'-'+site+'-'+type]||0)||0; }
+let saveTimer = null;
 function setVal(d, site, type, v) {
   if (!IS_ADMIN) return;
   getMonthData()[d+'-'+site+'-'+type] = v;
   markUnsaved();
+  // Sauvegarde automatique 2 secondes après la dernière modification
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveData(), 2000);
 }
 
 function calcDay(d, y, m) {
